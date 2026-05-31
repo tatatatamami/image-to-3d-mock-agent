@@ -1,0 +1,124 @@
+openapi: 3.0.3
+info:
+  title: image-to-3d-mock-agent API
+  version: 1.0.0
+  description: API for generating concept images with Azure OpenAI gpt-image-2 and storing them in Azure Blob Storage.
+paths:
+  /generate-image:
+    post:
+      operationId: generate_image
+      summary: Generate a concept image
+      description: Generates a PNG concept image from a natural-language prompt and stores it under the images/ prefix in Azure Blob Storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateImageRequest'
+      responses:
+        '200':
+          description: Image generated and uploaded successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateImageResponse'
+        '400':
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '500':
+          description: Server-side configuration or upload failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '502':
+          description: Azure OpenAI image generation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+components:
+  schemas:
+    GenerateImageRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: Natural-language prompt used to generate the image.
+          example: A small futuristic robot mascot, full body, white background
+        size:
+          type: string
+          default: 1024x1024
+          description: Output image size in <width>x<height> format.
+          example: 1024x1024
+        quality:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          default: high
+        n:
+          type: integer
+          minimum: 1
+          maximum: 1
+          default: 1
+          description: Number of images to generate. This endpoint currently returns a single uploaded image.
+    GenerateImageResponse:
+      type: object
+      required:
+        - imageUrl
+        - imageBlobPath
+        - prompt
+        - size
+        - quality
+        - status
+        - createdAt
+      properties:
+        imageUrl:
+          type: string
+          format: uri
+          example: https://storageaccount.blob.core.windows.net/generated-images/images/20260531000000000-0123456789abcdef0123456789abcdef.png
+        imageBlobPath:
+          type: string
+          example: images/20260531000000000-0123456789abcdef0123456789abcdef.png
+        prompt:
+          type: string
+          example: A small futuristic robot mascot, full body, white background
+        size:
+          type: string
+          example: 1024x1024
+        quality:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+        status:
+          type: string
+          example: succeeded
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-05-31T00:00:00Z
+    ApiErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

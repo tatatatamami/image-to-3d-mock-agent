@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ImageTo3DMockAgent.Functions/ImageTo3DMockAgent.Functions.csproj" />
+  </Folder>
+</Solution>
