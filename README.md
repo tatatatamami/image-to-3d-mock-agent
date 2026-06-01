@@ -1,6 +1,18 @@
 # image-to-3d-mock-agent
 Microsoft Foundry Agentから画像生成とImage-to-3D変換を実行し、3Dモックを生成するデモコード
 
+## UI モック (3D Mock Studio)
+
+`ui/` ディレクトリに、非エンジニア向けフロントエンド UI モックを収録しています。
+
+```bash
+cd ui
+npm install
+npm run dev   # http://localhost:5173
+```
+
+詳細は [`ui/README.md`](ui/README.md) を参照してください。
+
 ## API
 
 ### POST `/generate-3d`
