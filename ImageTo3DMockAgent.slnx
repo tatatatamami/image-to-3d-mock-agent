@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ImageTo3DMockAgent.Api/ImageTo3DMockAgent.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ImageTo3DMockAgent.Api.Tests/ImageTo3DMockAgent.Api.Tests.csproj" />
+  </Folder>
+</Solution>
