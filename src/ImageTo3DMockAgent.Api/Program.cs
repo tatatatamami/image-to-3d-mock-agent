@@ -25,6 +25,7 @@ if (!string.IsNullOrWhiteSpace(trellisEndpoint))
     builder.Services.AddHttpClient<TrellisGenerate3DAssetService>(client =>
     {
         client.BaseAddress = new Uri(trellisEndpoint);
+        client.Timeout = TimeSpan.FromMinutes(10); // TRELLIS の 3D 生成は数分かかる場合がある
         var apiKey = builder.Configuration["IMAGE_TO_3D_API_KEY"]
             ?? builder.Configuration[$"{TrellisOptions.SectionName}:ApiKey"];
         if (!string.IsNullOrWhiteSpace(apiKey))
@@ -33,7 +34,10 @@ if (!string.IsNullOrWhiteSpace(trellisEndpoint))
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
         }
     });
-    builder.Services.AddSingleton<IGenerate3DAssetService, TrellisGenerate3DAssetService>();
+    // AddSingleton ではなく AddTransient を使う
+    // AddHttpClient<T> が登録する typed client (Transient) を利用するため
+    builder.Services.AddTransient<IGenerate3DAssetService>(
+        sp => sp.GetRequiredService<TrellisGenerate3DAssetService>());
 }
 else
 {

@@ -34,12 +34,14 @@ public sealed class TrellisGenerate3DAssetService(
             "Calling TRELLIS API: imageUrl={ImageUrl} format={Format} quality={Quality}",
             imageUrl, outputFormat, quality);
 
-        // TRELLIS API へリクエスト
+        // TRELLIS API へリクエスト（BaseAddress に依存せず絶対 URL を使用）
+        var trellisBaseUrl = options.Value.ApiEndpoint.TrimEnd('/');
         var trellisRequest = new TrellisApiRequest(imageUrl, outputFormat, quality);
         byte[] assetBytes;
         try
         {
-            var response = await httpClient.PostAsJsonAsync("/generate-3d", trellisRequest, cancellationToken);
+            var response = await httpClient.PostAsJsonAsync(
+                $"{trellisBaseUrl}/generate-3d", trellisRequest, cancellationToken);
             response.EnsureSuccessStatusCode();
             assetBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         }

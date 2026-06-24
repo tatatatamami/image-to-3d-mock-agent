@@ -5,6 +5,14 @@
 
 # Generated test artifacts
 *.glb
+trellis_api/image/*.png
+trellis_api/image/*.jpg
+
+# Azure Functions local settings (contains endpoints / connection strings)
+**/local.settings.json
+
+# Azurite local storage emulator data
+.azurite/
 
 # User-specific files
 *.rsuser

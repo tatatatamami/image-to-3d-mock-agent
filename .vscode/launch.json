@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Attach to TRELLIS API",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5679
+      },
+      "preLaunchTask": "TRELLIS API: run with debugpy",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Python: Attach to Inspector Agent",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5680
+      },
+      "preLaunchTask": "Open Agent Inspector",
+      "postDebugTask": "Terminate All Tasks",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

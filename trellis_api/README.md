@@ -81,3 +81,42 @@ TRELLIS_HF_SPACE=<owner/space-name> uvicorn trellis_api.main:app --host 0.0.0.0 
 ```json
 "IMAGE_TO_3D_API_ENDPOINT": "http://localhost:8080"
 ```
+
+## Agent Inspector でトレースとトークン集計を確認する
+
+このリポジトリには Agent Inspector 対応のエントリーポイント
+`trellis_api/inspector_agent.py` を追加しています。
+
+### 1. 環境変数を設定
+
+ルートの `.env.template` を参考に `.env` を作成し、以下を設定します。
+
+| 変数 | 説明 |
+|---|---|
+| `FOUNDRY_PROJECT_ENDPOINT` | Foundry Project の endpoint |
+| `FOUNDRY_MODEL_DEPLOYMENT_NAME` | Foundry でデプロイ済みモデル名 |
+
+### 2. 依存関係をインストール
+
+```bash
+pip install -r trellis_api/requirements.txt
+```
+
+### 3. VS Code から起動
+
+Run and Debug で `Python: Attach to Inspector Agent` を実行します。
+
+この構成では次を自動実行します。
+
+- `agentdev` で `trellis_api/inspector_agent.py` を `--port 8088` で起動
+- Agent Inspector を 8088 に接続して開く
+
+### 4. 集計の確認
+
+Agent Inspector でメッセージを送信すると、Traces で以下を確認できます。
+
+- モデルターン
+- ツール呼び出し
+- 入力/出力トークン
+- キャッシュ入力トークン
+- 合計トークン

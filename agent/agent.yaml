@@ -1,0 +1,15 @@
+kind: hosted
+name: mock3d-agent
+protocols:
+    - protocol: responses
+      version: 1.0.0
+code_configuration:
+    runtime: python_3_13
+    entry_point: main.py
+    dependency_resolution: remote_build
+environment:
+    FOUNDRY_PROJECT_ENDPOINT: ${FOUNDRY_PROJECT_ENDPOINT}
+    AZURE_AI_MODEL_DEPLOYMENT_NAME: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
+    IMAGE_FUNCTIONS_ENDPOINT: ${IMAGE_FUNCTIONS_ENDPOINT}
+    GENERATE_3D_ENDPOINT: ${GENERATE_3D_ENDPOINT}
+    FUNCTIONS_API_KEY: ${FUNCTIONS_API_KEY}

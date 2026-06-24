@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>3D モデル ビューワー</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a1a2e; color: #eee; font-family: sans-serif; }
+    header { padding: 12px 20px; background: #16213e; display: flex; align-items: center; gap: 16px; }
+    header h1 { font-size: 18px; }
+    header small { color: #aaa; font-size: 13px; }
+    #canvas-container { width: 100vw; height: calc(100vh - 48px); position: relative; }
+    canvas { display: block; }
+    #info { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; color: #ccc; pointer-events: none; }
+    #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+               font-size: 18px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧊 3D Model Viewer</h1>
+    <small>Image → 3D Mock Agent | gpt-image-2 → TRELLIS.2</small>
+  </header>
+  <div id="canvas-container">
+    <div id="loading">モデルを読み込み中...</div>
+  </div>
+  <div id="info">マウスドラッグ: 回転 ｜ スクロール: ズーム ｜ 右ドラッグ: パン</div>
+
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+    }}
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const container = document.getElementById('canvas-container');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 100);
+    camera.position.set(0, 0.5, 2);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.5;
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+    const dir1 = new THREE.DirectionalLight(0xffffff, 1.5);
+    dir1.position.set(2, 4, 3);
+    scene.add(dir1);
+    const dir2 = new THREE.DirectionalLight(0x8888ff, 0.5);
+    dir2.position.set(-2, -1, -2);
+    scene.add(dir2);
+
+    // Grid
+    const grid = new THREE.GridHelper(4, 20, 0x444444, 0x333333);
+    grid.position.y = -0.8;
+    scene.add(grid);
+
+    // Load GLB
+    const loader = new GLTFLoader();
+    loader.load('./model.glb',
+      (gltf) => {
+        document.getElementById('loading').style.display = 'none';
+        const model = gltf.scene;
+
+        // Center & scale
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 1.5 / maxDim;
+        model.scale.setScalar(scale);
+        model.position.sub(center.multiplyScalar(scale));
+
+        scene.add(model);
+        controls.target.set(0, 0, 0);
+      },
+      (xhr) => {
+        const pct = Math.round(xhr.loaded / xhr.total * 100);
+        document.getElementById('loading').textContent = `読み込み中... ${pct}%`;
+      },
+      (err) => {
+        document.getElementById('loading').textContent = `エラー: ${err.message}`;
+      }
+    );
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

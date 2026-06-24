@@ -23,8 +23,10 @@ public sealed class AzureBlobStorageService(
             blobOptions.ContainerName);
 
         await containerClient.CreateIfNotExistsAsync(
-            PublicAccessType.None,
+            PublicAccessType.Blob,
             cancellationToken: cancellationToken);
+        // ローカル開発: 既存コンテナが None だった場合も上書きして公開アクセスを保証
+        await containerClient.SetAccessPolicyAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
 
         var blobClient = containerClient.GetBlobClient(blobPath);
 

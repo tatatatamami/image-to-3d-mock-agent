@@ -44,9 +44,15 @@ logger = logging.getLogger(__name__)
 HF_SPACE: str = os.environ.get("TRELLIS_HF_SPACE", "microsoft/TRELLIS.2")
 HF_TOKEN: str | None = os.environ.get("HF_TOKEN")
 
+logger.info("HF token status: %s", "configured" if HF_TOKEN else "not configured")
+logger.info("HF space: %s", HF_SPACE)
+
 # HF_TOKEN が設定されていれば huggingface_hub にログイン（Client が自動で利用する）
 if HF_TOKEN:
+    logger.info("Attempting Hugging Face login with configured token")
     huggingface_hub.login(token=HF_TOKEN, add_to_git_credential=False)
+else:
+    logger.info("No HF token found; using anonymous access path")
 
 app = FastAPI(title="TRELLIS Image-to-3D API (HuggingFace Space backend)")
 
@@ -98,10 +104,11 @@ async def generate_3d(req: GenerateRequest) -> Response:
     GLB バイナリを返す。
     """
     logger.info(
-        "Generating 3D via HF Space=%s imageUrl=%s quality=%s",
+        "Generating 3D via HF Space=%s imageUrl=%s quality=%s token_status=%s",
         HF_SPACE,
         req.imageUrl,
         req.quality,
+        "configured" if HF_TOKEN else "not configured",
     )
 
     # ---- 画像をダウンロードして一時ファイルに保存 -------------------------

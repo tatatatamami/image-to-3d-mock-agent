@@ -1,0 +1,207 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TRELLIS API: run with debugpy",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m debugpy --listen 127.0.0.1:5679 -m uvicorn trellis_api.main:app --host 127.0.0.1 --port 8080 --log-level debug",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Uvicorn running on|Application startup complete|Started server process"
+        },
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        }
+      }
+    },
+    {
+      "label": "Inspector Agent: run with debugpy",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m debugpy --listen 127.0.0.1:5680 -m agentdev run trellis_api/inspector_agent.py --verbose --port 8088",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Application startup complete|running on|Started server process"
+        },
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        }
+      }
+    },
+    {
+      "label": "Open Agent Inspector",
+      "type": "shell",
+      "command": "echo ${input:openAgentInspector}",
+      "presentation": {
+        "reveal": "never"
+      },
+      "dependsOn": [
+        "Inspector Agent: run with debugpy"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Terminate All Tasks",
+      "type": "shell",
+      "command": "echo ${input:terminateAllTasks}",
+      "problemMatcher": []
+    },
+    {
+      "label": "Azurite: start",
+      "type": "shell",
+      "command": "npx azurite --location .azurite --debug .azurite/debug.log",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Azurite Blob service is successfully listening"
+        },
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        }
+      }
+    },
+    {
+      "label": "Functions: ImageTo3DMockAgent.Functions (port 7072)",
+      "type": "shell",
+      "command": "func start --port 7072",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}/src/ImageTo3DMockAgent.Functions"
+      },
+      "dependsOn": ["Azurite: start"],
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Host lock lease acquired|Worker process started|Functions:"
+        },
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        }
+      }
+    },
+    {
+      "label": "Functions: ImageTo3DMockAgent.Api (port 7071)",
+      "type": "shell",
+      "command": "func start --port 7071",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}/src/ImageTo3DMockAgent.Api"
+      },
+      "dependsOn": ["Azurite: start"],
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Host lock lease acquired|Worker process started|Functions:"
+        },
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        }
+      }
+    },
+    {
+      "label": "Start All Services",
+      "dependsOn": [
+        "Azurite: start",
+        "TRELLIS API: run with debugpy",
+        "Functions: ImageTo3DMockAgent.Functions (port 7072)",
+        "Functions: ImageTo3DMockAgent.Api (port 7071)",
+        "Mock3D Agent: run (azd ai agent run)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Mock3D Agent: run (azd ai agent run)",
+      "type": "shell",
+      "command": "azd ai agent run mock3d-agent --no-inspector",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Application startup complete|Uvicorn running on|FoundryCBAgent server started"
+        },
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        }
+      }
+    },
+    {
+      "label": "Mock3D Agent: open in Agent Inspector",
+      "type": "shell",
+      "command": "echo ${input:openMock3DAgentInspector}",
+      "presentation": {
+        "reveal": "never"
+      },
+      "dependsOn": [
+        "Mock3D Agent: run (azd ai agent run)"
+      ],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "openAgentInspector",
+      "type": "command",
+      "command": "ai-mlstudio.openTestTool",
+      "args": {
+        "triggeredFrom": "tasks",
+        "port": 8088
+      }
+    },
+    {
+      "id": "terminateAllTasks",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "terminateAll"
+    },
+    {
+      "id": "openMock3DAgentInspector",
+      "type": "command",
+      "command": "ai-mlstudio.openTestTool",
+      "args": {
+        "triggeredFrom": "tasks",
+        "port": 8088
+      }
+    }
+  ]
+}

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image → 3D Mock Agent</title>
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e334d;
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --success:   #34d399;
+      --warning:   #fbbf24;
+      --error:     #f87171;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+    /* ── layout ────────────────────────────────────────── */
+    .app { display: flex; flex-direction: column; height: 100vh; }
+
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header svg { flex-shrink: 0; }
+    header h1 { font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+    header h1 span { color: var(--accent2); }
+    header small { margin-left: auto; color: var(--muted); font-size: 12px; }
+
+    .main { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; overflow: auto; }
+
+    /* ── prompt card ───────────────────────────────────── */
+    .prompt-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+    .prompt-card label { display: block; font-weight: 600; margin-bottom: 8px; }
+    .prompt-row { display: flex; gap: 10px; }
+    textarea {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px 14px;
+      resize: vertical;
+      min-height: 64px;
+      transition: border-color .2s;
+      font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+
+    .options { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    select:focus { outline: none; border-color: var(--accent); }
+
+    .btn-generate {
+      margin-left: auto;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 28px;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn-generate:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-generate:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    /* ── pipeline row ──────────────────────────────────── */
+    .pipeline { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: border-color .3s;
+    }
+    .step-card.active  { border-color: var(--accent); }
+    .step-card.done    { border-color: var(--success); }
+    .step-card.errored { border-color: var(--error); }
+
+    .step-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px;
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .step-card.active  .step-num { background: var(--accent); }
+    .step-card.done    .step-num { background: var(--success); color: #000; }
+    .step-card.errored .step-num { background: var(--error); color: #000; }
+
+    .step-title { font-weight: 600; font-size: 14px; }
+    .step-meta  { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    .badge {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+      background: var(--border); color: var(--muted);
+    }
+    .badge.running { background: rgba(108,99,255,.25); color: var(--accent2); }
+    .badge.done    { background: rgba(52,211,153,.2);  color: var(--success); }
+    .badge.error   { background: rgba(248,113,113,.2); color: var(--error); }
+
+    .step-body { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 300px; }
+
+    /* placeholder */
+    .placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--muted); }
+    .placeholder svg { opacity: .3; }
+    .placeholder p { font-size: 13px; }
+
+    /* image result */
+    .result-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; display: block; }
+
+    /* 3D canvas */
+    #canvas-wrap { width: 100%; height: 100%; }
+    #canvas-wrap canvas { display: block; }
+
+    /* spinner */
+    .spinner-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-text { color: var(--muted); font-size: 13px; }
+
+    /* progress bar */
+    .progress-bar-wrap { width: 180px; background: var(--border); border-radius: 4px; height: 4px; margin-top: 6px; }
+    .progress-bar { height: 4px; background: var(--accent); border-radius: 4px; width: 0%; transition: width .5s; }
+
+    /* error */
+    .error-box { color: var(--error); font-size: 13px; max-width: 340px; text-align: center; padding: 16px; }
+    .error-box pre { margin-top: 8px; background: var(--surface2); padding: 8px 12px; border-radius: 6px; text-align: left; white-space: pre-wrap; word-break: break-all; font-size: 11px; }
+
+    /* step footer */
+    .step-footer { padding: 8px 18px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); display: flex; gap: 16px; background: var(--surface2); }
+
+    /* arrow connector */
+    .connector { display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--border); }
+
+    @media (max-width: 700px) {
+      .pipeline { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── header ─────────────────────────────────── -->
+  <header>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="#6c63ff22"/>
+      <path d="M7 22L16 10L25 22H7Z" fill="#6c63ff" opacity=".7"/>
+      <circle cx="16" cy="16" r="4" fill="#a78bfa"/>
+    </svg>
+    <h1>Image → <span>3D</span> Mock Agent</h1>
+    <small>gpt-image-2 ＋ TRELLIS.2 | Local Demo</small>
+  </header>
+
+  <!-- ── main ───────────────────────────────────── -->
+  <div class="main">
+
+    <!-- prompt card -->
+    <div class="prompt-card">
+      <label for="prompt">プロンプト</label>
+      <div class="prompt-row">
+        <textarea id="prompt" rows="2" placeholder="例: 白背景の前面向きスマートフォンのモックアップ">白背景の前面向きスマートフォンのモックアップ</textarea>
+      </div>
+      <div class="options">
+        <label style="color:var(--muted)">サイズ</label>
+        <select id="size">
+          <option value="1024x1024" selected>1024 × 1024</option>
+          <option value="1024x1792">1024 × 1792</option>
+          <option value="1792x1024">1792 × 1024</option>
+        </select>
+        <label style="color:var(--muted)">3D クオリティ</label>
+        <select id="quality">
+          <option value="preview" selected>preview（高速）</option>
+          <option value="standard">standard</option>
+        </select>
+        <button class="btn-generate" id="btnGenerate" onclick="runPipeline()">🚀 Generate</button>
+      </div>
+    </div>
+
+    <!-- pipeline -->
+    <div class="pipeline">
+
+      <!-- step 1: image -->
+      <div class="step-card" id="card1">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title">画像生成 (gpt-image-2)</div>
+          <span class="badge" id="badge1">待機中</span>
+          <div class="step-meta" id="time1"></div>
+        </div>
+        <div class="step-body" id="body1">
+          <div class="placeholder">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="8" width="48" height="48" rx="6" stroke="#94a3b8" stroke-width="2"/><circle cx="24" cy="24" r="5" stroke="#94a3b8" stroke-width="2"/><path d="M8 44L22 30L30 38L40 28L56 44" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"/></svg>
+            <p>画像がここに表示されます</p>
+          </div>
+        </div>
+        <div class="step-footer" id="footer1"></div>
+      </div>
+
+      <!-- step 2: 3d -->
+      <div class="step-card" id="card2">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title">3D 変換 (TRELLIS.2)</div>
+          <span class="badge" id="badge2">待機中</span>
+          <div class="step-meta" id="time2"></div>
+        </div>
+        <div class="step-body" id="body2">
+          <div class="placeholder">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 8L56 22V42L32 56L8 42V22L32 8Z" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"/><path d="M32 8V56M8 22L56 22M8 42L56 42" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3"/></svg>
+            <p>3D モデルがここに表示されます</p>
+          </div>
+        </div>
+        <div class="step-footer" id="footer2"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Three.js 3D viewer -->
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+  }}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── state ──────────────────────────────────────────────────────
+let threeRenderer = null;
+let threeControls = null;
+let threeScene    = null;
+let threeCamera   = null;
+let threeAnim     = null;
+
+function setCard(n, state) {
+  const card  = document.getElementById(`card${n}`);
+  const badge = document.getElementById(`badge${n}`);
+  card.className = 'step-card ' + (state || '');
+  const labels = { active: '処理中', done: '完了', errored: 'エラー', '': '待機中' };
+  const cls    = { active: 'running', done: 'done', errored: 'error', '': '' };
+  badge.textContent = labels[state] ?? state;
+  badge.className   = 'badge ' + (cls[state] ?? '');
+}
+
+function setBody(n, html) {
+  document.getElementById(`body${n}`).innerHTML = html;
+}
+
+function setTime(n, ms) {
+  const el = document.getElementById(`time${n}`);
+  el.textContent = ms != null ? `${(ms/1000).toFixed(1)}s` : '';
+}
+
+function setFooter(n, html) {
+  document.getElementById(`footer${n}`).innerHTML = html;
+}
+
+// ── pipeline ───────────────────────────────────────────────────
+window.runPipeline = async function runPipeline() {
+  const prompt  = document.getElementById('prompt').value.trim();
+  const size    = document.getElementById('size').value;
+  const quality = document.getElementById('quality').value;
+  const btn     = document.getElementById('btnGenerate');
+  if (!prompt) { alert('プロンプトを入力してください'); return; }
+
+  btn.disabled = true;
+  destroyThree();
+
+  // reset cards
+  [1, 2].forEach(n => { setCard(n, ''); setBody(n, placeholderHtml(n)); setTime(n, null); setFooter(n, ''); });
+
+  // ── Step 1: generate image ────────────────────────────────
+  setCard(1, 'active');
+  setBody(1, spinnerHtml('画像を生成しています…'));
+  const t1 = Date.now();
+  let imageUrl;
+  try {
+    const r1 = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, size }),
+    });
+    const d1 = await r1.json();
+    if (!r1.ok) throw new Error(JSON.stringify(d1, null, 2));
+    imageUrl = d1.imageUrl;
+    const elapsed1 = Date.now() - t1;
+    setCard(1, 'done');
+    setTime(1, elapsed1);
+    setBody(1, `<img class="result-img" src="${imageUrl}" alt="generated"/>`);
+    setFooter(1, `<span>URL: <code style="font-size:11px;word-break:break-all">${imageUrl}</code></span>`);
+  } catch (e) {
+    setCard(1, 'errored');
+    setBody(1, errorHtml(e.message));
+    btn.disabled = false;
+    return;
+  }
+
+  // ── Step 2: generate 3D ───────────────────────────────────
+  setCard(2, 'active');
+  setBody(2, spinnerHtml('3D モデルに変換しています…\n(TRELLIS.2 は数十秒かかります)', true));
+  const t2 = Date.now();
+  try {
+    const r2 = await fetch('/api/generate-3d', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl, quality }),
+    });
+    const d2 = await r2.json();
+    if (!r2.ok) throw new Error(JSON.stringify(d2, null, 2));
+    const elapsed2 = Date.now() - t2;
+    setCard(2, 'done');
+    setTime(2, elapsed2);
+    setFooter(2, `<span>URL: <code style="font-size:11px;word-break:break-all">${d2.modelUrl}</code></span>`);
+    mountThreeViewer('body2', d2.modelUrl);
+  } catch (e) {
+    setCard(2, 'errored');
+    setBody(2, errorHtml(e.message));
+  }
+  btn.disabled = false;
+};
+
+// ── Three.js viewer ────────────────────────────────────────────
+function mountThreeViewer(bodyId, glbUrl) {
+  const container = document.getElementById(bodyId);
+  container.innerHTML = '<div id="canvas-wrap"></div>';
+  const wrap = document.getElementById('canvas-wrap');
+  wrap.style.cssText = 'width:100%;height:100%;';
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  wrap.appendChild(renderer.domElement);
+
+  const scene  = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1d27);
+
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+  camera.position.set(0, 0.5, 2.2);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.autoRotate    = true;
+  controls.autoRotateSpeed = 1.5;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const d1 = new THREE.DirectionalLight(0xffffff, 1.5); d1.position.set(2, 4, 3); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x8888ff, 0.5); d2.position.set(-2, -1, -2); scene.add(d2);
+
+  const grid = new THREE.GridHelper(4, 20, 0x333344, 0x252535);
+  grid.position.y = -0.8;
+  scene.add(grid);
+
+  function resize() {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  const ro = new ResizeObserver(resize);
+  ro.observe(wrap);
+
+  new GLTFLoader().load(
+    glbUrl,
+    (gltf) => {
+      const model = gltf.scene;
+      const box   = new THREE.Box3().setFromObject(model);
+      const ctr   = box.getCenter(new THREE.Vector3());
+      const sz    = box.getSize(new THREE.Vector3());
+      const s     = 1.5 / Math.max(sz.x, sz.y, sz.z);
+      model.scale.setScalar(s);
+      model.position.sub(ctr.multiplyScalar(s));
+      scene.add(model);
+    },
+    undefined,
+    (err) => console.error('GLB load error', err)
+  );
+
+  function animate() {
+    threeAnim = requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  threeRenderer = renderer;
+  threeControls = controls;
+  threeScene    = scene;
+  threeCamera   = camera;
+}
+
+function destroyThree() {
+  if (threeAnim)     cancelAnimationFrame(threeAnim);
+  if (threeRenderer) { threeRenderer.dispose(); threeRenderer = null; }
+}
+
+// ── template helpers ───────────────────────────────────────────
+function placeholderHtml(n) {
+  if (n === 1) return `<div class="placeholder"><svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="8" width="48" height="48" rx="6" stroke="#94a3b8" stroke-width="2"/><circle cx="24" cy="24" r="5" stroke="#94a3b8" stroke-width="2"/><path d="M8 44L22 30L30 38L40 28L56 44" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"/></svg><p>画像がここに表示されます</p></div>`;
+  return `<div class="placeholder"><svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 8L56 22V42L32 56L8 42V22L32 8Z" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"/><path d="M32 8V56M8 22L56 22M8 42L56 42" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3"/></svg><p>3D モデルがここに表示されます</p></div>`;
+}
+
+function spinnerHtml(msg, showBar = false) {
+  return `<div class="spinner-wrap">
+    <div class="spinner"></div>
+    <div class="spinner-text" style="white-space:pre-line;text-align:center">${msg}</div>
+    ${showBar ? '<div class="progress-bar-wrap"><div class="progress-bar" id="pbar"></div></div>' : ''}
+  </div>`;
+}
+
+function errorHtml(msg) {
+  return `<div class="error-box">❌ エラーが発生しました<pre>${escHtml(msg)}</pre></div>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
