@@ -62,6 +62,18 @@ uvicorn server:app --host 127.0.0.1 --port 9000
 
 ブラウザで `http://localhost:9000/` を開くと画像生成 → 3D 変換をエンドツーエンドで試せます。
 
+## UI モック (3D Mock Studio)
+
+`ui/` ディレクトリに、非エンジニア向けフロントエンド UI モックを収録しています。
+
+```bash
+cd ui
+npm install
+npm run dev   # http://localhost:5173
+```
+
+詳細は [`ui/README.md`](ui/README.md) を参照してください。
+
 ## API
 
 ### POST `/api/generate-image`（ポート 7072）
