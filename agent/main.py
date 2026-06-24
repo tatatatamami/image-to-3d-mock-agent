@@ -19,8 +19,8 @@ import urllib.error
 import urllib.request
 from typing import Annotated
 
-from agent_framework.azure import AzureAIClient
-from azure.ai.agentserver.agentframework import from_agent_framework
+from agent_framework.foundry import FoundryChatClient
+from agent_framework_foundry_hosting import ResponsesHostServer
 from azure.identity.aio import AzureCliCredential
 from dotenv import load_dotenv
 
@@ -177,9 +177,9 @@ async def main() -> None:
 
     async with (
         AzureCliCredential() as credential,
-        AzureAIClient(
+        FoundryChatClient(
             project_endpoint=project_endpoint,
-            model_deployment_name=deployment,
+            model=deployment,
             credential=credential,
         ).as_agent(
             name="mock3d-agent",
@@ -187,7 +187,7 @@ async def main() -> None:
             tools=[generate_image, generate_3d_model],
         ) as agent,
     ):
-        await from_agent_framework(agent).run_async()
+        await ResponsesHostServer(agent).run_async()
 
 
 if __name__ == "__main__":

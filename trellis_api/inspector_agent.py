@@ -3,8 +3,8 @@ import os
 from typing import Annotated
 
 import urllib.request
-from agent_framework.azure import AzureAIClient
-from azure.ai.agentserver.agentframework import from_agent_framework
+from agent_framework.foundry import FoundryChatClient
+from agent_framework_foundry_hosting import ResponsesHostServer
 from azure.identity.aio import AzureCliCredential
 from dotenv import load_dotenv
 
@@ -51,9 +51,9 @@ async def run_server() -> None:
 
     async with (
         AzureCliCredential() as credential,
-        AzureAIClient(
+        FoundryChatClient(
             project_endpoint=project_endpoint,
-            model_deployment_name=deployment,
+            model=deployment,
             credential=credential,
         ).as_agent(
             name="trellis-inspector-agent",
@@ -64,7 +64,7 @@ async def run_server() -> None:
             tools=[get_service_status, get_quality_steps],
         ) as agent,
     ):
-        await from_agent_framework(agent).run_async()
+        await ResponsesHostServer(agent).run_async()
 
 
 if __name__ == "__main__":
