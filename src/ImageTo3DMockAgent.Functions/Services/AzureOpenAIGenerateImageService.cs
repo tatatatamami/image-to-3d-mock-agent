@@ -80,7 +80,16 @@ public sealed class AzureOpenAIGenerateImageService(
                 request.Prompt!,
                 new ImageEditOptions { Size = ParseImageSize(request.Size) });
 
-            return await DownloadImageAsync(result.Value.ImageUri!, cancellationToken);
+            // gpt-image-2 は常に base64（ImageBytes）を返す。ImageUri は返さない。
+            if (result.Value.ImageBytes is { } editBytes)
+                return editBytes.ToArray();
+
+            // フォールバック: URI が返された場合（他のモデルとの互換性）
+            if (result.Value.ImageUri is { } editUri)
+                return await DownloadImageAsync(editUri, cancellationToken);
+
+            throw new InvalidOperationException(
+                "Image edit API returned neither bytes nor a URI.");
         }
         catch (Exception ex)
         {
