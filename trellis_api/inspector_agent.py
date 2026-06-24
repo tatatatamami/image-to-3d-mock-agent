@@ -5,7 +5,7 @@ from typing import Annotated
 import urllib.request
 from agent_framework.foundry import FoundryChatClient
 from agent_framework_foundry_hosting import ResponsesHostServer
-from azure.identity.aio import AzureCliCredential
+from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
 
@@ -50,7 +50,7 @@ async def run_server() -> None:
         )
 
     async with (
-        AzureCliCredential() as credential,
+        DefaultAzureCredential() as credential,
         FoundryChatClient(
             project_endpoint=project_endpoint,
             model=deployment,
