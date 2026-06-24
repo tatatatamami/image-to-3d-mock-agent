@@ -119,7 +119,8 @@ def generate_3d_model(
     }
 
     try:
-        result = _post_json(url, payload)
+        # TRELLIS は ZeroGPU 混雑時に数分かかる。demo server と同じ 660s を確保する。
+        result = _post_json(url, payload, timeout=660)
         return (
             f"3D モデル生成完了。\n"
             f"  modelUrl: {result['modelUrl']}\n"

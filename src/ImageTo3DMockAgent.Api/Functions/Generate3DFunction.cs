@@ -37,7 +37,17 @@ public sealed class Generate3DFunction(IGenerate3DAssetService generate3DAssetSe
             return new BadRequestObjectResult(new { errors });
         }
 
-        var response = await generate3DAssetService.GenerateAsync(body!, cancellationToken);
-        return new OkObjectResult(response);
+        try
+        {
+            var response = await generate3DAssetService.GenerateAsync(body!, cancellationToken);
+            return new OkObjectResult(response);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ObjectResult(new { error = "3D generation failed.", detail = ex.Message })
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+        }
     }
 }
