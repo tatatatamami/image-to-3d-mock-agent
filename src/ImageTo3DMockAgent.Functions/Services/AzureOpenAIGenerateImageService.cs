@@ -1,6 +1,4 @@
-using Azure;
 using Azure.AI.OpenAI;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ImageTo3DMockAgent.Functions.Models;
@@ -19,22 +17,21 @@ namespace ImageTo3DMockAgent.Functions.Services;
 /// テキスト生成にフォールバックする。
 /// </summary>
 public sealed class AzureOpenAIGenerateImageService(
+    AzureOpenAIClient openAIClient,
     IOptions<AzureOpenAIOptions> openAIOptions,
     IOptions<BlobStorageOptions> blobOptions,
     IHttpClientFactory httpClientFactory,
     ILogger<AzureOpenAIGenerateImageService> logger) : IGenerateImageService
 {
+    // BlobContainerClient はスレッドセーフなため Singleton で安全にキャッシュ可能
+    private readonly BlobContainerClient blobContainerClient = new(blobOptions.Value.ConnectionString, blobOptions.Value.ContainerName);
+    private volatile bool blobContainerReady;
     public async Task<GenerateImageResponse> GenerateAsync(
         GenerateImageRequest request,
         CancellationToken cancellationToken)
     {
         var opts = openAIOptions.Value;
-
-        AzureOpenAIClient client = string.IsNullOrWhiteSpace(opts.ApiKey)
-            ? new AzureOpenAIClient(new Uri(opts.Endpoint), new DefaultAzureCredential())
-            : new AzureOpenAIClient(new Uri(opts.Endpoint), new AzureKeyCredential(opts.ApiKey));
-
-        var imageClient = client.GetImageClient(opts.ImageDeployment);
+        var imageClient = openAIClient.GetImageClient(opts.ImageDeployment);
 
         logger.LogInformation(
             "Generating image: deployment={Deployment} hasReferenceImage={HasRef}",
@@ -139,16 +136,14 @@ public sealed class AzureOpenAIGenerateImageService(
         string blobPath,
         CancellationToken cancellationToken)
     {
-        var opts = blobOptions.Value;
-        var containerClient = new BlobContainerClient(opts.ConnectionString, opts.ContainerName);
+        // 初回アップロード時のみコンテナを作成（CreateIfNotExistsAsync は冪等）
+        if (!blobContainerReady)
+        {
+            await blobContainerClient.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
+            blobContainerReady = true;
+        }
 
-        await containerClient.CreateIfNotExistsAsync(
-            PublicAccessType.Blob,
-            cancellationToken: cancellationToken);
-        // ローカル開発: 既存コンテナが None だった場合も上書きして公開アクセスを保証
-        await containerClient.SetAccessPolicyAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
-
-        var blobClient = containerClient.GetBlobClient(blobPath);
+        var blobClient = blobContainerClient.GetBlobClient(blobPath);
         using var stream = new MemoryStream(data, writable: false);
         await blobClient.UploadAsync(
             stream,

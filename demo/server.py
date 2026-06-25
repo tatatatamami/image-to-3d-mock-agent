@@ -21,6 +21,8 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 FUNCTIONS_IMAGE_BASE = os.getenv("FUNCTIONS_IMAGE_BASE", "http://localhost:7072")
 FUNCTIONS_3D_BASE    = os.getenv("FUNCTIONS_3D_BASE",    "http://localhost:7071")
 DEMO_PORT            = int(os.getenv("DEMO_PORT", "9000"))
+# blob-proxy が転送を許可するオリジン（Azurite / 本番 Blob Storage のベース URL）
+BLOB_ORIGIN          = os.getenv("BLOB_ORIGIN", "http://127.0.0.1:10000")
 
 _keys: dict[str, str] = {}
 
@@ -95,7 +97,11 @@ async def proxy_generate_3d(request: Request) -> JSONResponse:
 # -- blob proxy (CORS 回避) -----------------------------------------------
 @app.get("/blob-proxy")
 async def proxy_blob(url: str) -> Response:
-    """Azurite などローカル Blob の CORS 制限を回避するプロキシ。"""
+    """Azurite などローカル Blob の CORS 制限を回避するプロキシ。
+    BLOB_ORIGIN で許可したオリジン以外の URL はリジェクトする（SSRF 対策）。
+    """
+    if not url.startswith(BLOB_ORIGIN):
+        raise HTTPException(status_code=400, detail="URL not allowed")
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.get(url)
     return Response(

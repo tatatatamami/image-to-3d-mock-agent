@@ -1,3 +1,6 @@
+using Azure;
+using Azure.AI.OpenAI;
+using Azure.Identity;
 using ImageTo3DMockAgent.Functions.Options;
 using ImageTo3DMockAgent.Functions.Services;
 using Microsoft.Azure.Functions.Worker;
@@ -51,6 +54,14 @@ builder.Services.AddHttpClient();
 // AZURE_OPENAI_ENDPOINT が設定されていれば実サービス、未設定ならスタブ
 if (!string.IsNullOrWhiteSpace(openAIEndpoint))
 {
+    // AzureOpenAIClient はスレッドセーフなため Singleton で登録
+    builder.Services.AddSingleton<AzureOpenAIClient>(_ =>
+    {
+        var endpoint = new Uri(openAIEndpoint);
+        return string.IsNullOrWhiteSpace(openAIApiKey)
+            ? new AzureOpenAIClient(endpoint, new DefaultAzureCredential())
+            : new AzureOpenAIClient(endpoint, new AzureKeyCredential(openAIApiKey));
+    });
     builder.Services.AddSingleton<IGenerateImageService, AzureOpenAIGenerateImageService>();
 }
 else

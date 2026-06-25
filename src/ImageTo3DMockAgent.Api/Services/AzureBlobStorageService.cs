@@ -10,7 +10,9 @@ public sealed class AzureBlobStorageService(
     IOptions<BlobStorageOptions> options,
     ILogger<AzureBlobStorageService> logger) : IBlobStorageService
 {
-    private readonly BlobStorageOptions blobOptions = options.Value;
+    // BlobContainerClient はスレッドセーフなため Singleton で安全にキャッシュ可能
+    private readonly BlobContainerClient containerClient = new(options.Value.ConnectionString, options.Value.ContainerName);
+    private volatile bool containerReady;
 
     public async Task<(string Url, string BlobPath)> UploadAsync(
         byte[] data,
@@ -18,15 +20,12 @@ public sealed class AzureBlobStorageService(
         string contentType,
         CancellationToken cancellationToken)
     {
-        var containerClient = new BlobContainerClient(
-            blobOptions.ConnectionString,
-            blobOptions.ContainerName);
-
-        await containerClient.CreateIfNotExistsAsync(
-            PublicAccessType.Blob,
-            cancellationToken: cancellationToken);
-        // ローカル開発: 既存コンテナが None だった場合も上書きして公開アクセスを保証
-        await containerClient.SetAccessPolicyAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
+        // 初回アップロード時のみコンテナを作成（CreateIfNotExistsAsync は冪等）
+        if (!containerReady)
+        {
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
+            containerReady = true;
+        }
 
         var blobClient = containerClient.GetBlobClient(blobPath);
 
