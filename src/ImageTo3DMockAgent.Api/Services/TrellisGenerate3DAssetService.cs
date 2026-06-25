@@ -42,7 +42,13 @@ public sealed class TrellisGenerate3DAssetService(
         {
             var response = await httpClient.PostAsJsonAsync(
                 $"{trellisBaseUrl}/generate-3d", trellisRequest, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                logger.LogError("TRELLIS API returned {Status}: {Body}", (int)response.StatusCode, body);
+                throw new HttpRequestException(
+                    $"TRELLIS API {(int)response.StatusCode}: {body[..Math.Min(body.Length, 300)]}");
+            }
             assetBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

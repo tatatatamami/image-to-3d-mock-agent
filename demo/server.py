@@ -11,7 +11,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 log = logging.getLogger("demo")
@@ -90,6 +90,18 @@ async def proxy_generate_3d(request: Request) -> JSONResponse:
             headers={"x-functions-key": _keys.get("model3d", "")},
         )
     return JSONResponse(content=r.json(), status_code=r.status_code)
+
+
+# -- blob proxy (CORS 回避) -----------------------------------------------
+@app.get("/blob-proxy")
+async def proxy_blob(url: str) -> Response:
+    """Azurite などローカル Blob の CORS 制限を回避するプロキシ。"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.get(url)
+    return Response(
+        content=r.content,
+        media_type=r.headers.get("content-type", "application/octet-stream"),
+    )
 
 
 # -- entry point ---------------------------------------------------------

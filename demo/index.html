@@ -358,7 +358,11 @@ window.runPipeline = async function runPipeline() {
     setCard(2, 'done');
     setTime(2, elapsed2);
     setFooter(2, `<span>URL: <code style="font-size:11px;word-break:break-all">${d2.modelUrl}</code></span>`);
-    mountThreeViewer('body2', d2.modelUrl);
+    // ローカル Blob URL は CORS 回避のためプロキシ経由で読み込む
+    const viewerUrl = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(d2.modelUrl)
+      ? `/blob-proxy?url=${encodeURIComponent(d2.modelUrl)}`
+      : d2.modelUrl;
+    mountThreeViewer('body2', viewerUrl);
   } catch (e) {
     setCard(2, 'errored');
     setBody(2, errorHtml(e.message));
