@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    // --- Mock モード（デフォルト）: AZURE_OPENAI_ENDPOINT を空にすると有効 ---
+
+    // --- Azure OpenAI モード: AZURE_OPENAI_ENDPOINT に値を入れると有効化 ---
+    "AZURE_OPENAI_ENDPOINT": "",
+    "AZURE_OPENAI_IMAGE_DEPLOYMENT": "gpt-image-2",
+    // API キーを使う場合のみ設定（省略時は DefaultAzureCredential を使用）
+    "AZURE_OPENAI_API_KEY": "",
+
+    // 生成画像の保存先（Azurite ローカル開発は UseDevelopmentStorage=true でよい）
+    "AZURE_STORAGE_CONNECTION_STRING": "UseDevelopmentStorage=true",
+    "AZURE_STORAGE_CONTAINER_NAME": "images"
+  }
+}

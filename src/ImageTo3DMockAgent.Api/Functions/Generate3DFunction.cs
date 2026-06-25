@@ -4,10 +4,13 @@ using ImageTo3DMockAgent.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 
 namespace ImageTo3DMockAgent.Api.Functions;
 
-public sealed class Generate3DFunction(IGenerate3DAssetService generate3DAssetService)
+public sealed class Generate3DFunction(
+    IGenerate3DAssetService generate3DAssetService,
+    ILogger<Generate3DFunction> logger)
 {
     [Function("Generate3D")]
     public async Task<IActionResult> Run(

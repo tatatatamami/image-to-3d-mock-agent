@@ -1,0 +1,25 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    // --- Mock モード（デフォルト）: 以下 2 項目のみ設定すれば動作 ---
+    "MockAssetStorage__SourceImageBaseUrl": "http://127.0.0.1:10000/devstoreaccount1/assets",
+    "MockAssetStorage__ModelBaseUrl": "http://127.0.0.1:10000/devstoreaccount1/assets",
+
+    // --- TRELLIS モード: IMAGE_TO_3D_API_ENDPOINT に値を入れると有効化 ---
+    // Blob Storage（Azurite ローカル開発は UseDevelopmentStorage=true でよい）
+    "BlobStorage__ConnectionString": "UseDevelopmentStorage=true",
+    "BlobStorage__ContainerName": "assets",
+
+    // Trellis FastAPI サーバーの設定
+    "Trellis__BlobBaseUrl": "http://127.0.0.1:10000/devstoreaccount1/assets",
+    "Trellis__ApiEndpoint": "",
+
+    // この値を設定すると Mock モードから TRELLIS モードへ切り替わる
+    "IMAGE_TO_3D_API_ENDPOINT": "",
+    // Bearer 認証が必要な場合のみ設定（省略可）
+    "IMAGE_TO_3D_API_KEY": ""
+  }
+}

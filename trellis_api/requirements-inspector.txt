@@ -1,0 +1,10 @@
+# trellis_api/inspector_agent.py の依存パッケージ
+# main.py とは別インストール環境を推奨（競合回避）
+-r requirements.txt
+agent-framework-foundry>=1.8.0
+agent-framework-foundry-hosting>=1.0.0a260604
+agent-framework-core>=1.8.0
+azure-ai-agentserver-core>=2.0.0b5
+azure-identity>=1.19.0
+python-dotenv>=1.0.1
+agent-dev-cli>=0.0.1b260316
