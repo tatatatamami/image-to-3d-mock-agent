@@ -3,6 +3,12 @@ Microsoft Foundry Agent から画像生成と Image-to-3D 変換を実行し、3
 
 詳細な仕様は [SPEC.md](SPEC.md) を参照してください。
 
+## デモ
+
+![demo](docs/demo.png)
+
+> テキストプロンプトから AI 画像を生成（左）し、TRELLIS.2 で 3D モデルに変換（右）するエンドツーエンドのデモ画面。
+
 ## コンポーネント構成
 
 | コンポーネント | 役割 | ポート |
@@ -133,3 +139,9 @@ uvicorn server:app --host 127.0.0.1 --port 9000
 
 
 必要に応じて `MockAssetStorage__SourceImageBaseUrl` と `MockAssetStorage__ModelBaseUrl` 環境変数で画像/モデルのベース URL を上書きできます。
+
+
+![alt text](image-1.png)
+
+
+![alt text](image.png)
