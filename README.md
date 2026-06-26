@@ -27,7 +27,7 @@ Microsoft Foundry Agent から画像生成と Image-to-3D 変換を実行し、3
 - [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite)（ローカル Blob エミュレーター）
 - Python 3.10 以上
 - .NET 8 SDK
-- （TRELLIS モードのみ）[HuggingFace](https://huggingface.co/) アカウントと `HF_TOKEN`。ZeroGPU の無料枠は月 5 分のため、継続利用には [Pro プラン](https://huggingface.co/pricing)（月 40 分）を推奨します。
+- （TRELLIS モードのみ）[HuggingFace](https://huggingface.co/) アカウントと `HF_TOKEN`。
 
 ### 設定ファイルの準備
 
@@ -139,9 +139,3 @@ uvicorn server:app --host 127.0.0.1 --port 9000
 
 
 必要に応じて `MockAssetStorage__SourceImageBaseUrl` と `MockAssetStorage__ModelBaseUrl` 環境変数で画像/モデルのベース URL を上書きできます。
-
-
-![alt text](image-1.png)
-
-
-![alt text](image.png)
