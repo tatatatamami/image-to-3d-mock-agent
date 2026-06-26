@@ -7,11 +7,11 @@ Microsoft Foundry Agent から画像生成と Image-to-3D 変換を実行し、3
 
 | コンポーネント | 役割 | ポート |
 |---|---|---|
-| `agent/main.py` | Foundry Hosted Agent（ユーザー対話・ツール呼び出し） | — |
 | `ImageTo3DMockAgent.Functions` | 画像生成 Azure Functions（gpt-image-2 → Blob 保存） | 7072 |
 | `ImageTo3DMockAgent.Api` | 3D 変換 Azure Functions（Mock または TRELLIS） | 7071 |
 | `trellis_api/main.py` | TRELLIS FastAPI ラッパー（HuggingFace Space 経由） | 8080 |
 | `demo/server.py` | デモ UI プロキシサーバー | 9000 |
+| `trellis_api/inspector_agent.py` | デバッグ用 Foundry Agent | 8088 |
 
 ## ローカル起動手順
 
@@ -21,6 +21,23 @@ Microsoft Foundry Agent から画像生成と Image-to-3D 変換を実行し、3
 - [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite)（ローカル Blob エミュレーター）
 - Python 3.10 以上
 - .NET 8 SDK
+- （TRELLIS モードのみ）[HuggingFace](https://huggingface.co/) アカウントと `HF_TOKEN`。ZeroGPU の無料枠は月 5 分のため、継続利用には [Pro プラン](https://huggingface.co/pricing)（月 40 分）を推奨します。
+
+### 設定ファイルの準備
+
+各サービスの `local.settings.json.example` を `local.settings.json` としてコピーし、必要な値を設定してください。
+
+```bash
+# Windows
+copy src\ImageTo3DMockAgent.Functions\local.settings.json.example src\ImageTo3DMockAgent.Functions\local.settings.json
+copy src\ImageTo3DMockAgent.Api\local.settings.json.example src\ImageTo3DMockAgent.Api\local.settings.json
+
+# macOS / Linux
+cp src/ImageTo3DMockAgent.Functions/local.settings.json.example src/ImageTo3DMockAgent.Functions/local.settings.json
+cp src/ImageTo3DMockAgent.Api/local.settings.json.example src/ImageTo3DMockAgent.Api/local.settings.json
+```
+
+> `local.settings.json` は `.gitignore` により Git 管理外です。シークレットを誤ってコミットしないよう注意してください。
 
 ### 1. Azurite を起動
 
@@ -49,7 +66,14 @@ start-api.bat
 ```bash
 cd trellis_api
 pip install -r requirements.txt
-uvicorn trellis_api.main:app --host 127.0.0.1 --port 8080
+HF_TOKEN=<your_huggingface_token> uvicorn trellis_api.main:app --host 127.0.0.1 --port 8080
+```
+
+TRELLIS モードを有効にするには `src/ImageTo3DMockAgent.Api/local.settings.json` に以下を設定します。
+
+```json
+"Trellis__ApiEndpoint": "http://127.0.0.1:8080",
+"IMAGE_TO_3D_API_ENDPOINT": "http://127.0.0.1:8080/generate-3d"
 ```
 
 ### 5. デモ UI（ポート 9000）
